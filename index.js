@@ -1,3 +1,38 @@
+const AWS = require('aws-sdk');
+
+AWS.config.update({
+  region: 'us-east-1',
+  endpoint: 'http://localhost:8000'
+});
+
+const dynamodb = new AWS.DynamoDB();
+
+const docClient = new AWS.DynamoDB.DocumentClient();
+
+// const params = {
+//   TableName: 'Test',
+//   KeySchema: [
+//     { AttributeName: 'PhoneNumber', KeyType: 'HASH' },
+//     { AttributeName: 'VanityNumber', KeyType: 'RANGE' }
+//   ],
+//   AttributeDefinitions: [
+//     { AttributeName: 'PhoneNumber', AttributeType: 'N' },
+//     { AttributeName: 'VanityNumber', AttributeType: 'S' }
+//   ],
+//   ProvisionedThroughput: {
+//     ReadCapacityUnits: 5,
+//     WriteCapacityUnits: 5
+//   }
+// }
+
+// dynamodb.createTable(params, function (err, data) {
+//   if (err) {
+//     console.error('Unable to create table. Error JSON:', JSON.stringify(err, null, 2));
+//   } else {
+//     console.log('Created table. Table description JSON:', JSON.stringify(data, null, 2));
+//   }
+// });
+
 const testNumber = 9498132551;
 
 const hashmap = {
@@ -34,4 +69,52 @@ const vanityGenerator = (teleNum) => {
   return result;
 }
 
-vanityGenerator(testNumber);
+const writeToDB = () => {
+  let count = 5;
+  let newArr = [];
+
+  while (count > 0) {
+    newArr.push(vanityGenerator(testNumber))
+    count--
+  }
+
+  let params = {
+    TableName: 'Test',
+    Item: {
+      PhoneNumber: testNumber,
+      VanityNumber: newArr[0],
+      VanityNumber_1: newArr[1],
+      VanityNumber_2: newArr[2],
+      VanityNumber_3: newArr[3],
+      VanityNumber_4: newArr[4]
+    }
+  }
+  console.log('adding a new item....');
+  docClient.put(params, (err, data) => {
+    if (err) {
+      console.error('Unable to add item. Error JSON:', JSON.stringify(err, null, 2));
+    } else {
+      console.log('Added item:', JSON.stringify(data, null, 2))
+    }
+  })
+
+}
+
+let params = {
+  TableName: 'Test'
+}
+
+docClient.scan(params, onScan);
+
+function onScan(err, data) {
+  if (err) {
+    console.error('Unable to scan the table. Error JSON:', JSON.stringify(err, null, 2));
+  } else {
+    console.log('Scan succeeded');
+    console.log(data);
+  }
+}
+
+// writeToDB();
+
+// vanityGenerator(testNumber);
