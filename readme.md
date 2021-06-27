@@ -8,6 +8,7 @@ This project uses Node/JS in a lambda function, DynamoDB as our non-relational d
 
 ### Node
 In our NodeJS file/lambda function the first step I took was to write out a hashmap with the idea of T9 format in mind, while in T9 the numbers 1(one) and 0(zero) don't have Letter values. In the hashmap I had them be equal to vowels, with the exception of 'Y' in the number 0(zero).
+![](assets/hashmap.png)
 
 The next step was to isolate the number and remove the '+1' from the event Object returned, this was a hurdle at first being ignorant to Lambda's event Object.
 
@@ -21,3 +22,4 @@ Next was the trickiest portion of this assignment, writing to the DynamoDB, init
 
 ### Amazon Connect
 Amazon Connect, the newest piece of technology to me for this assignment. It took some time understanding how to construct a call flow, and after learning how things connected and interacted with each other these are the options I took. Entry Point -> Play Prompt(notifying user that vanity number is being generated) -> Invoke Lambda Function -> Play Prompt(relay vanity numbers to user) -> Disconnect. Throughout configuring the Amazon Connect portion of this assignment, relaying the results proved to be the most difficult, I could see the lambda function was working as intended as the DynamoDB table was updated with every test. Once I understood how to call external variables from a lambda function that had executed directly before a prompt, I was able to have the prompt relay the 'top 3' results.
+![](assets/Connect-Flow.png)

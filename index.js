@@ -4,8 +4,6 @@ AWS.config.update({ region: 'us-east-1' });
 
 const dynamoDB = new AWS.DynamoDB();
 
-const docClient = new AWS.DynamoDB.DocumentClient({ region: 'us-east-1' });
-
 const hashmap = {
   1: ['A', 'E', 'I', 'O', 'U', 'Y'],
   2: ['A', 'B', 'C'],
