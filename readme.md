@@ -8,6 +8,8 @@ This project uses Node/JS in a lambda function, DynamoDB as our non-relational d
 
 ### Node
 In our NodeJS file/lambda function the first step I took was to write out a hashmap with the idea of T9 format in mind, while in T9 the numbers 1(one) and 0(zero) don't have Letter values. In the hashmap I had them be equal to vowels, with the exception of 'Y' in the number 0(zero).
+
+
 ![](assets/hashmap.png)
 
 The next step was to isolate the number and remove the '+1' from the event Object returned, this was a hurdle at first being ignorant to Lambda's event Object.
