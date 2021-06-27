@@ -1,39 +1,10 @@
 const AWS = require('aws-sdk');
 
-AWS.config.update({
-  region: 'us-east-1',
-  endpoint: 'http://localhost:8000'
-});
+AWS.config.update({ region: 'us-east-1' });
 
-const dynamodb = new AWS.DynamoDB();
+const dynamoDB = new AWS.DynamoDB();
 
-const docClient = new AWS.DynamoDB.DocumentClient();
-
-// const params = {
-//   TableName: 'Test',
-//   KeySchema: [
-//     { AttributeName: 'PhoneNumber', KeyType: 'HASH' },
-//     { AttributeName: 'VanityNumber', KeyType: 'RANGE' }
-//   ],
-//   AttributeDefinitions: [
-//     { AttributeName: 'PhoneNumber', AttributeType: 'N' },
-//     { AttributeName: 'VanityNumber', AttributeType: 'S' }
-//   ],
-//   ProvisionedThroughput: {
-//     ReadCapacityUnits: 5,
-//     WriteCapacityUnits: 5
-//   }
-// }
-
-// dynamodb.createTable(params, function (err, data) {
-//   if (err) {
-//     console.error('Unable to create table. Error JSON:', JSON.stringify(err, null, 2));
-//   } else {
-//     console.log('Created table. Table description JSON:', JSON.stringify(data, null, 2));
-//   }
-// });
-
-const testNumber = 9498132551;
+const docClient = new AWS.DynamoDB.DocumentClient({ region: 'us-east-1' });
 
 const hashmap = {
   1: ['A', 'E', 'I', 'O', 'U', 'Y'],
@@ -48,73 +19,89 @@ const hashmap = {
   0: ['A', 'E', 'I', 'O', 'U']
 }
 
-const vanityGenerator = (teleNum) => {
-  let duplicateNum = teleNum;
-  // clause check for num to string
-  if (typeof teleNum === 'number') {
-    duplicateNum = teleNum.toString();
-  }
-  // split our 'number' into an array so that we can manipulate easier
-  let splitDuplicate = duplicateNum.split('')
+exports.handler = async (event, context, callback) => {
 
-  for (let i = splitDuplicate.length - 4; i < splitDuplicate.length; i++) {
-    // placeholder for hashmap to clean
-    let hashNum = hashmap[splitDuplicate[i]];
-    // replacing the current index of telephone number with random letter assignment on hashmap
-    splitDuplicate[i] = hashNum[Math.floor(Math.random() * hashNum.length)]
+
+  let phoneNumber = event['Details']['ContactData']['CustomerEndpoint']['Address'].substring(2);
+  let vanityArray = [];
+
+  const phoneNumberFormatFunc = (arr) => {
+    return `(${arr.slice(0, 3).join('')}) ${arr.slice(3, 6).join('')}-${arr.slice(6).join('')}`;
   }
 
-  let result = splitDuplicate.join('');
+  const vanityGenerator = (teleNum) => {
+    let duplicateNum = teleNum;
+    // clause check for num to string
+    if (typeof teleNum === 'number') {
+      duplicateNum = teleNum.toString();
+    }
+    // split our 'number' into an array so that we can manipulate easier
+    let splitDuplicate = phoneNumberFormatFunc(duplicateNum.split('')).split('');
 
-  return result;
-}
+    for (let i = splitDuplicate.length - 4; i < splitDuplicate.length; i++) {
+      // placeholder for hashmap to clean
+      let hashNum = hashmap[splitDuplicate[i]];
+      // replacing the current index of telephone number with random letter assignment on hashmap
+      splitDuplicate[i] = hashNum[Math.floor(Math.random() * hashNum.length)]
+    }
 
-const writeToDB = () => {
-  let count = 5;
-  let newArr = [];
+    let result = splitDuplicate.join('');
 
-  while (count > 0) {
-    newArr.push(vanityGenerator(testNumber))
-    count--
+    return result;
   }
+
+  // function to generate 100 unique vanity numbers
+  const addToVanityArray = () => {
+    let count = 100;
+    while (count > 0) {
+      vanityArray.push(vanityGenerator(phoneNumber));
+      count--;
+    }
+  }
+
+  addToVanityArray();
+
+  const isVowel = (letter) => {
+    return ('aeiouAEIOU'.indexOf(letter) != -1);
+  }
+
+  const vanityFilter = (arr) => {
+    let results = [];
+    for (let i = 0; i < arr.length; i++) {
+      if (results.length === 5) {
+        break;
+      }
+      let current = arr[i].split('');
+      let endOfCurrent = current[current.length - 1];
+      if (isVowel(endOfCurrent) === true) {
+        results.push(arr[i]);
+      }
+    }
+    return results;
+  };
+
+  let filteredResults = vanityFilter(vanityArray);
 
   let params = {
-    TableName: 'Test',
+    TableName: 'VANITY_NUMBERS',
     Item: {
-      PhoneNumber: testNumber,
-      VanityNumber: newArr[0],
-      VanityNumber_1: newArr[1],
-      VanityNumber_2: newArr[2],
-      VanityNumber_3: newArr[3],
-      VanityNumber_4: newArr[4]
+      'PHONE_NUMBER': { S: phoneNumber },
+      'VANITY_NUMBER': { S: filteredResults[0] },
+      'VANITY_NUMBER_1': { S: filteredResults[1] },
+      'VANITY_NUMBER_2': { S: filteredResults[2] },
+      'VANITY_NUMBER_3': { S: filteredResults[3] },
+      'VANITY_NUMBER_4': { S: filteredResults[4] }
     }
+  };
+
+  const results = {
+    number_1: filteredResults[0],
+    number_2: filteredResults[1],
+    number_3: filteredResults[2],
+
   }
-  console.log('adding a new item....');
-  docClient.put(params, (err, data) => {
-    if (err) {
-      console.error('Unable to add item. Error JSON:', JSON.stringify(err, null, 2));
-    } else {
-      console.log('Added item:', JSON.stringify(data, null, 2))
-    }
-  })
 
-}
+  dynamoDB.putItem(params);
 
-let params = {
-  TableName: 'Test'
-}
-
-docClient.scan(params, onScan);
-
-function onScan(err, data) {
-  if (err) {
-    console.error('Unable to scan the table. Error JSON:', JSON.stringify(err, null, 2));
-  } else {
-    console.log('Scan succeeded');
-    console.log(data);
-  }
-}
-
-// writeToDB();
-
-// vanityGenerator(testNumber);
+  callback(null, results);
+};
